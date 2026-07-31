@@ -566,7 +566,7 @@
   <!-- ░░ STAGE 4: PILIHAN ░░ -->
   <section class="stage" data-stage="4" style="position:relative">
     <span class="eyebrow">jadi...</span>
-    <h1>Maukah kamu berjalan bersamaku? 🩵</h1>
+    <h1>Maukah kamu jadi pacarku? 🩵</h1>
     <hr class="divider">
     <div class="choice-row" id="choiceRow">
       <button class="btn btn-gold" id="btnYes">Iya, aku mau 💙</button>
