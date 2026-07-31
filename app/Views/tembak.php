@@ -280,11 +280,56 @@
     50%       { transform: translateY(-3px); opacity: 1; }
   }
 
-  /* ─── Letter ─────────────────────────────────────── */
-  .letter-box {
+  /* ─── Letter / Konfesi boxes ──────────────────────── */
+  .letter-box,
+  .konfesi-box {
     text-align: left;
     width: 100%;
-    min-height: 140px;
+    /* scrollable saat konten panjang */
+    max-height: 48svh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) transparent;
+    padding-right: 4px;
+  }
+  .letter-box::-webkit-scrollbar,
+  .konfesi-box::-webkit-scrollbar { width: 3px; }
+  .letter-box::-webkit-scrollbar-track,
+  .konfesi-box::-webkit-scrollbar-track { background: transparent; }
+  .letter-box::-webkit-scrollbar-thumb,
+  .konfesi-box::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
+
+  /* ─── Celebration scroll ─────────────────────────── */
+  .celebration-scroll {
+    width: 100%;
+    max-height: 48svh;
+    overflow-y: auto;
+    text-align: left;
+    scrollbar-width: thin;
+    scrollbar-color: var(--gold) transparent;
+    padding-right: 4px;
+  }
+  .celebration-scroll::-webkit-scrollbar { width: 3px; }
+  .celebration-scroll::-webkit-scrollbar-track { background: transparent; }
+  .celebration-scroll::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 2px; }
+  .celeb-line {
+    font-size: clamp(14px, 3.5vw, 16px);
+    line-height: 1.9;
+    color: var(--ink-light);
+    margin: 0 0 8px;
+    opacity: 0;
+    transition: opacity .5s ease, transform .5s ease;
+    transform: translateY(8px);
+  }
+  .celeb-line.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  /* baris terakhir (nama) warna gold */
+  .celeb-line.celeb-sign {
+    color: var(--gold);
+    font-weight: 600;
+    margin-top: 8px;
   }
 
   /* ─── Buttons ────────────────────────────────────── */
@@ -509,10 +554,19 @@
     </button>
   </section>
 
-  <!-- ░░ STAGE 3: THE QUESTION ░░ -->
+  <!-- ░░ STAGE 3: KONFESI ░░ -->
   <section class="stage" data-stage="3" style="position:relative">
-    <span class="eyebrow">jadi begini...</span>
-    <h1><?= esc($pertanyaan) ?></h1>
+    <span class="eyebrow">dan satu hal lagi...</span>
+    <div class="konfesi-box" id="konfesiBox"></div>
+    <button class="btn btn-gold" id="btnLanjut2" style="display:none; margin-top:4px">
+      Lanjut &rarr;
+    </button>
+  </section>
+
+  <!-- ░░ STAGE 4: PILIHAN ░░ -->
+  <section class="stage" data-stage="4" style="position:relative">
+    <span class="eyebrow">jadi...</span>
+    <h1>Maukah kamu berjalan bersamaku? 🩵</h1>
     <hr class="divider">
     <div class="choice-row" id="choiceRow">
       <button class="btn btn-gold" id="btnYes">Iya, aku mau 💙</button>
@@ -520,13 +574,12 @@
     </div>
   </section>
 
-  <!-- ░░ STAGE 4: CELEBRATION ░░ -->
-  <section class="stage" data-stage="4" style="position:relative">
+  <!-- ░░ STAGE 5: CELEBRATION ░░ -->
+  <section class="stage" data-stage="5" style="position:relative">
     <div class="final-icon">🌠</div>
-    <h1>Yeay, akhirnya!</h1>
+    <h1>Yeay, akhirnya! 🩵</h1>
     <hr class="divider">
-    <p class="body-text"><?= esc($pesanIya) ?></p>
-    <p class="signature">— <?= esc($namaCowok) ?></p>
+    <div class="celebration-scroll" id="celebrationBox"></div>
   </section>
 
 </main>
@@ -687,39 +740,36 @@
     });
   }
 
-  /* ── Envelope → Letter ───────────────────────────── */
-  const envelope = document.getElementById('envelope');
+  /* ── Envelope → Surat (Stage 2) ─────────────────── */
+  const envelope  = document.getElementById('envelope');
   const letterBox = document.getElementById('letterBox');
   const btnLanjut = document.getElementById('btnLanjut');
-  const ceritaKita = <?= json_encode($ceritaKita) ?>;
+
+  const ceritaKita  = <?= json_encode($ceritaKita) ?>;
+  const konfesiKita = <?= json_encode($konfesiKita) ?>;
+  const pesanIya    = <?= json_encode($pesanIya) ?>;
+
+  // Ketik teks ke dalam sebuah kotak scrollable, satu paragraf selesai dulu baru berikutnya
+  async function typeIntoBox(box, lines, charSpeed) {
+    box.innerHTML = '';
+    for (let idx = 0; idx < lines.length; idx++) {
+      const p = document.createElement('p');
+      p.className = 'letter-line';
+      box.appendChild(p);
+      box.scrollTop = box.scrollHeight;
+      await typeParagraph(p, lines[idx], charSpeed);
+      box.scrollTop = box.scrollHeight;
+      if (idx < lines.length - 1) {
+        await new Promise(r => setTimeout(r, 380));
+      }
+    }
+  }
 
   async function openLetter() {
     goStage(2);
     revealConst(10);
-    startMusic();          // mulai musik saat amplop diklik
-    letterBox.innerHTML = '';
-
-    const CHAR_SPEED = 32; // ms per karakter — turunkan biar lebih cepat
-
-    for (let idx = 0; idx < ceritaKita.length; idx++) {
-      // Buat elemen paragraf
-      const p = document.createElement('p');
-      p.className = 'letter-line';
-      letterBox.appendChild(p);
-
-      // Scroll supaya paragraf baru selalu terlihat
-      p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-      // Ketik isi paragraf, tunggu sampai selesai
-      await typeParagraph(p, ceritaKita[idx], CHAR_SPEED);
-
-      // Jeda singkat antar paragraf
-      if (idx < ceritaKita.length - 1) {
-        await new Promise(r => setTimeout(r, 500));
-      }
-    }
-
-    // Tampilkan tombol Lanjut setelah semua paragraf selesai
+    startMusic();
+    await typeIntoBox(letterBox, ceritaKita, 22);
     setTimeout(() => { btnLanjut.style.display = 'inline-block'; }, 400);
   }
 
@@ -728,8 +778,20 @@
     if (e.key === 'Enter' || e.key === ' ') openLetter();
   });
 
-  btnLanjut.addEventListener('click', () => {
+  /* ── Surat → Konfesi (Stage 3) ───────────────────── */
+  const konfesiBox = document.getElementById('konfesiBox');
+  const btnLanjut2 = document.getElementById('btnLanjut2');
+
+  btnLanjut.addEventListener('click', async () => {
     goStage(3);
+    revealConst(14);
+    await typeIntoBox(konfesiBox, konfesiKita, 22);
+    setTimeout(() => { btnLanjut2.style.display = 'inline-block'; }, 400);
+  });
+
+  /* ── Konfesi → Pilihan (Stage 4) ─────────────────── */
+  btnLanjut2.addEventListener('click', () => {
+    goStage(4);
     revealConst(TOTAL);
   });
 
@@ -817,11 +879,28 @@
     }
   }
 
+  /* ── Ya → Celebration (Stage 5) ────────────────── */
+  const celebrationBox = document.getElementById('celebrationBox');
+
   btnYes.addEventListener('click', () => {
-    goStage(4);
+    goStage(5);
     fireBurst();
     setTimeout(fireBurst, 550);
     setTimeout(fireBurst, 1100);
+
+    // Tampilkan kalimat penutup satu per satu dengan fade-in
+    celebrationBox.innerHTML = '';
+    pesanIya.forEach((line, i) => {
+      const p = document.createElement('p');
+      const isSign = i >= pesanIya.length - 2; // 2 baris terakhir = tanda tangan
+      p.className = 'celeb-line' + (isSign ? ' celeb-sign' : '');
+      p.textContent = line;
+      celebrationBox.appendChild(p);
+      setTimeout(() => {
+        p.classList.add('show');
+        celebrationBox.scrollTop = celebrationBox.scrollHeight;
+      }, 300 + i * 260);
+    });
   });
 })();
 </script>
