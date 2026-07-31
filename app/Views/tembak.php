@@ -287,21 +287,6 @@
     min-height: 140px;
   }
 
-  .letter-line {
-    font-size: clamp(14.5px, 3.5vw, 16.5px);
-    line-height: 1.9;
-    color: var(--ink-light);
-    margin: 0 0 12px;
-    opacity: 0;
-  }
-  .letter-line.show {
-    animation: fadeUp .65s cubic-bezier(.22,.85,.32,1) both;
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
   /* ─── Buttons ────────────────────────────────────── */
   .btn {
     font-family: var(--font-sans);
@@ -378,6 +363,76 @@
     border: none;
   }
 
+  /* ─── Music toggle button ────────────────────────── */
+  #musicBtn {
+    position: fixed;
+    bottom: clamp(16px, 4vw, 24px);
+    right: clamp(16px, 4vw, 24px);
+    z-index: 20;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: var(--gold);
+    font-size: 18px;
+    cursor: pointer;
+    display: none;            /* tampil setelah amplop diklik */
+    align-items: center;
+    justify-content: center;
+    transition: transform .2s ease, box-shadow .25s ease, background .25s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    -webkit-tap-highlight-color: transparent;
+  }
+  #musicBtn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 22px rgba(232,185,79,.3);
+  }
+  #musicBtn.muted { color: var(--ink-muted); }
+
+  /* spinning vinyl ring when playing */
+  #musicBtn::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-top-color: var(--gold);
+    animation: spinRing 2s linear infinite;
+    opacity: 0;
+    transition: opacity .3s ease;
+  }
+  #musicBtn.playing::before { opacity: .6; }
+  @keyframes spinRing {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ─── Typing cursor ──────────────────────────────── */
+  .type-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background: var(--gold);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    border-radius: 1px;
+    animation: cursorBlink .75s step-end infinite;
+  }
+  @keyframes cursorBlink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  /* letter-line tidak perlu opacity:0 lagi, dikontrol JS */
+  .letter-line {
+    font-size: clamp(14.5px, 3.5vw, 16.5px);
+    line-height: 1.9;
+    color: var(--ink-light);
+    margin: 0 0 12px;
+    min-height: 1.9em;   /* cegah layout shift saat typing */
+  }
+
   /* ─── Particles ──────────────────────────────────── */
   #burst { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
   .particle {
@@ -414,6 +469,15 @@
 </style>
 </head>
 <body>
+
+<!-- ░░ Audio ░░ -->
+<!-- Ganti 'music.mp3' dengan nama file MP3 kamu yang ada di folder public/ -->
+<audio id="bgMusic" loop preload="auto">
+  <source src="/music.mp3" type="audio/mpeg">
+</audio>
+
+<!-- Music toggle button -->
+<button id="musicBtn" aria-label="Toggle musik" title="Toggle musik">🎵</button>
 
 <!-- Background layers -->
 <div id="sky"></div>
@@ -554,30 +618,110 @@
     window.scrollTo(0, 0);
   }
 
+  /* ── Music ───────────────────────────────────────── */
+  const bgMusic  = document.getElementById('bgMusic');
+  const musicBtn = document.getElementById('musicBtn');
+  let musicStarted = false;
+
+  function startMusic() {
+    if (musicStarted) return;
+    musicStarted = true;
+    bgMusic.volume = 0;
+    bgMusic.play().then(() => {
+      // Fade-in volume perlahan supaya tidak tiba-tiba keras
+      let vol = 0;
+      const fadeIn = setInterval(() => {
+        vol = Math.min(vol + 0.04, 0.55);
+        bgMusic.volume = vol;
+        if (vol >= 0.55) clearInterval(fadeIn);
+      }, 120);
+      musicBtn.style.display = 'flex';
+      musicBtn.classList.add('playing');
+    }).catch(() => {
+      // Browser block autoplay — tombol tetap tampil, user bisa klik manual
+      musicBtn.style.display = 'flex';
+    });
+  }
+
+  musicBtn.addEventListener('click', () => {
+    if (!musicStarted) {
+      startMusic();
+      return;
+    }
+    if (bgMusic.paused) {
+      bgMusic.play();
+      musicBtn.classList.remove('muted');
+      musicBtn.classList.add('playing');
+      musicBtn.textContent = '🎵';
+    } else {
+      bgMusic.pause();
+      musicBtn.classList.add('muted');
+      musicBtn.classList.remove('playing');
+      musicBtn.textContent = '🔇';
+    }
+  });
+
+  /* ── Typewriter ──────────────────────────────────── */
+  // Mengetik satu paragraf, resolve saat selesai
+  function typeParagraph(el, text, speed) {
+    return new Promise(resolve => {
+      // Buat cursor berkedip
+      const cursor = document.createElement('span');
+      cursor.className = 'type-cursor';
+      el.appendChild(cursor);
+
+      let i = 0;
+      const tick = setInterval(() => {
+        if (i < text.length) {
+          // Sisipkan karakter sebelum cursor
+          cursor.insertAdjacentText('beforebegin', text[i]);
+          i++;
+        } else {
+          clearInterval(tick);
+          // Hapus cursor setelah paragraf selesai
+          setTimeout(() => {
+            cursor.remove();
+            resolve();
+          }, 320);
+        }
+      }, speed);
+    });
+  }
+
   /* ── Envelope → Letter ───────────────────────────── */
   const envelope = document.getElementById('envelope');
   const letterBox = document.getElementById('letterBox');
   const btnLanjut = document.getElementById('btnLanjut');
   const ceritaKita = <?= json_encode($ceritaKita) ?>;
 
-  function openLetter() {
+  async function openLetter() {
     goStage(2);
     revealConst(10);
+    startMusic();          // mulai musik saat amplop diklik
     letterBox.innerHTML = '';
-    let delay = 250;
-    ceritaKita.forEach((line, idx) => {
-      setTimeout(() => {
-        const p = document.createElement('p');
-        p.className = 'letter-line';
-        p.textContent = line;
-        letterBox.appendChild(p);
-        requestAnimationFrame(() => p.classList.add('show'));
-        if (idx === ceritaKita.length - 1) {
-          setTimeout(() => { btnLanjut.style.display = 'inline-block'; }, 800);
-        }
-      }, delay);
-      delay += 1400;
-    });
+
+    const CHAR_SPEED = 32; // ms per karakter — turunkan biar lebih cepat
+
+    for (let idx = 0; idx < ceritaKita.length; idx++) {
+      // Buat elemen paragraf
+      const p = document.createElement('p');
+      p.className = 'letter-line';
+      letterBox.appendChild(p);
+
+      // Scroll supaya paragraf baru selalu terlihat
+      p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // Ketik isi paragraf, tunggu sampai selesai
+      await typeParagraph(p, ceritaKita[idx], CHAR_SPEED);
+
+      // Jeda singkat antar paragraf
+      if (idx < ceritaKita.length - 1) {
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
+    // Tampilkan tombol Lanjut setelah semua paragraf selesai
+    setTimeout(() => { btnLanjut.style.display = 'inline-block'; }, 400);
   }
 
   envelope.addEventListener('click', openLetter);
