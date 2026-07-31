@@ -119,7 +119,8 @@ _modules/*
 *.sublime-workspace
 *.sublime-project
 .phpintel
-/api/
+# /api/ → folder ini dipakai untuk Vercel serverless entry point, jangan di-exclude
+# /api/
 
 # Visual Studio Code
 .vscode/
