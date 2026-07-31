@@ -473,7 +473,7 @@
 <!-- ░░ Audio ░░ -->
 <!-- Ganti 'music.mp3' dengan nama file MP3 kamu yang ada di folder public/ -->
 <audio id="bgMusic" loop preload="auto">
-  <source src="/music.mp3" type="audio/mpeg">
+  <source src="/LANY - ILYSB.mp3" type="audio/mpeg">
 </audio>
 
 <!-- Music toggle button -->
