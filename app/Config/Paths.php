@@ -53,7 +53,9 @@ class Paths
      * for maximum security, keeping it out of the app and/or
      * system directories.
      */
-    public string $writableDirectory = __DIR__ . '/../../writable';
+    // Vercel (dan serverless environment) punya filesystem read-only.
+    // /tmp selalu writable di environment serverless manapun.
+    public string $writableDirectory = '/tmp/ci4-writable';
 
     /**
      * ---------------------------------------------------------------
