@@ -769,7 +769,7 @@
     goStage(2);
     revealConst(10);
     startMusic();
-    await typeIntoBox(letterBox, ceritaKita, 22);
+    await typeIntoBox(letterBox, ceritaKita, 40);
     setTimeout(() => { btnLanjut.style.display = 'inline-block'; }, 400);
   }
 
@@ -785,7 +785,7 @@
   btnLanjut.addEventListener('click', async () => {
     goStage(3);
     revealConst(14);
-    await typeIntoBox(konfesiBox, konfesiKita, 22);
+    await typeIntoBox(konfesiBox, konfesiKita, 40);
     setTimeout(() => { btnLanjut2.style.display = 'inline-block'; }, 400);
   });
 
@@ -882,25 +882,14 @@
   /* ── Ya → Celebration (Stage 5) ────────────────── */
   const celebrationBox = document.getElementById('celebrationBox');
 
-  btnYes.addEventListener('click', () => {
+  btnYes.addEventListener('click', async () => {
     goStage(5);
     fireBurst();
     setTimeout(fireBurst, 550);
     setTimeout(fireBurst, 1100);
 
-    // Tampilkan kalimat penutup satu per satu dengan fade-in
-    celebrationBox.innerHTML = '';
-    pesanIya.forEach((line, i) => {
-      const p = document.createElement('p');
-      const isSign = i >= pesanIya.length - 2; // 2 baris terakhir = tanda tangan
-      p.className = 'celeb-line' + (isSign ? ' celeb-sign' : '');
-      p.textContent = line;
-      celebrationBox.appendChild(p);
-      setTimeout(() => {
-        p.classList.add('show');
-        celebrationBox.scrollTop = celebrationBox.scrollHeight;
-      }, 300 + i * 260);
-    });
+    // Ketik pesan penutup dengan animasi yang sama seperti stage 2 & 3
+    await typeIntoBox(celebrationBox, pesanIya, 40);
   });
 })();
 </script>
